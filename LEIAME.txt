@@ -1,0 +1,13 @@
+CinePlayer - projeto Android (WebView)
+
+OPCAO 1 - Android Studio (PC):
+  1. Abrir esta pasta em Android Studio (File > Open).
+  2. Esperar o Gradle sincronizar.
+  3. Build > Build APK(s). A APK fica em app/build/outputs/apk/debug/app-debug.apk
+  4. Copiar para o telemovel e instalar (permitir "fontes desconhecidas").
+
+OPCAO 2 - GitHub (sem instalar nada):
+  1. Criar repositorio privado e enviar esta pasta (inclui .github/workflows/build.yml).
+  2. Separador Actions > Build APK > descarregar o artefacto CinePlayer-apk.
+
+Para mudar o interface: editar app/src/main/assets/index.html

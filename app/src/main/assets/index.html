@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b10">
+<title>CinePlayer</title>
+<style>
+:root{--bg:#0b0b10;--card:#16161f;--card2:#1e1e2a;--txt:#f2f2f7;--mut:#8b8b9e;--acc:#ff4d5e;--acc2:#7c5cff;--r:18px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+#app{height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px}
+.logo{font-weight:800;font-size:22px;letter-spacing:.3px}
+.logo b{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.add{background:linear-gradient(135deg,var(--acc),var(--acc2));padding:10px 16px;border-radius:99px;font-weight:600;font-size:14px;box-shadow:0 6px 20px #7c5cff55}
+#home{flex:1;overflow:auto;padding:8px 18px calc(24px + env(safe-area-inset-bottom))}
+.hero{border-radius:24px;padding:22px;background:radial-gradient(circle at 80% 0,#7c5cff55,transparent 55%),radial-gradient(circle at 0 100%,#ff4d5e44,transparent 55%),var(--card);margin-bottom:20px}
+.hero h2{margin:0 0 6px;font-size:22px}.hero p{margin:0 0 14px;color:var(--mut);font-size:14px}
+h3{font-size:16px;margin:18px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.card{background:var(--card);border-radius:var(--r);overflow:hidden;text-align:left;position:relative;transition:transform .15s}
+.card:active{transform:scale(.97)}
+.thumb{aspect-ratio:16/10;background:linear-gradient(135deg,#252536,#14141c);display:block;width:100%;object-fit:cover}
+.card .meta{padding:10px 12px 12px}
+.card .t{font-size:13px;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px}
+.card .d{font-size:12px;color:var(--mut);margin-top:4px}
+.bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:#0008}.bar i{display:block;height:100%;background:var(--acc)}
+.play-ico{position:absolute;top:calc(50% - 36px);left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:#000a;backdrop-filter:blur(6px);display:grid;place-items:center}
+.empty{color:var(--mut);text-align:center;padding:40px 10px;border:2px dashed #2a2a3a;border-radius:var(--r)}
+/* player */
+#player{position:fixed;inset:0;background:#000;display:none;z-index:10;touch-action:none;user-select:none}
+#player.on{display:block}
+video{width:100%;height:100%;object-fit:contain;background:#000}
+.ui{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;opacity:0;transition:opacity .25s;pointer-events:none;background:linear-gradient(#000b,transparent 25%,transparent 65%,#000c)}
+.ui.show{opacity:1}.ui.show>*{pointer-events:auto}
+.top,.bot{padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top))}
+.bot{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;gap:10px}
+.top .name{flex:1;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#ffffff14;backdrop-filter:blur(8px)}
+.ib svg{width:22px;height:22px;fill:#fff}
+.mid{display:flex;justify-content:center;align-items:center;gap:34px}
+.big{width:72px;height:72px;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.big svg{width:34px;height:34px}
+.seek{display:flex;align-items:center;gap:10px;font-size:12px;font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:5px;border-radius:9px;background:#ffffff33;outline:0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px #ff4d5e66}
+.row{display:flex;justify-content:space-between;margin-top:8px}
+.pill{padding:8px 14px;border-radius:99px;background:#ffffff14;font-size:13px;backdrop-filter:blur(8px)}
+.toast{position:absolute;left:50%;top:18%;transform:translateX(-50%);background:#000b;padding:10px 18px;border-radius:99px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.ripple{position:absolute;top:50%;width:140px;height:140px;margin-top:-70px;border-radius:50%;background:#ffffff22;display:grid;place-items:center;font-weight:700;opacity:0;pointer-events:none}
+.ripple.on{animation:rp .5s}
+@keyframes rp{0%{opacity:1;transform:scale(.6)}100%{opacity:0;transform:scale(1.2)}}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:24px 24px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));display:none;max-height:60%;overflow:auto;z-index:3}
+.sheet.on{display:block}
+.sheet h4{margin:0 0 12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 16px;border-radius:99px;background:var(--card2);font-size:14px}
+.chip.sel{background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.pl{display:flex;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid #ffffff10;width:100%;text-align:left}
+.pl.sel .t{color:var(--acc)}
+.pl img{width:84px;aspect-ratio:16/10;border-radius:10px;object-fit:cover;background:#222}
+.pl .t{font-size:14px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header><div class="logo">Cine<b>Player</b></div><button class="add" id="addBtn">+ Adicionar filmes</button></header>
+  <div id="home"></div>
+</div>
+<input type="file" id="file" accept="video/*,.mkv" multiple hidden>
+<input type="file" id="subFile" accept=".srt,.vtt" hidden>
+
+<div id="player">
+  <video id="v" playsinline></video>
+  <div class="ripple" id="rl" style="left:6%">« 10</div>
+  <div class="ripple" id="rr" style="right:6%">10 »</div>
+  <div class="toast" id="toast"></div>
+  <div class="ui show" id="ui">
+    <div class="top">
+      <button class="ib" id="back"><svg viewBox="0 0 24 24"><path d="M15.4 5.4 14 4l-8 8 8 8 1.4-1.4L8.8 12z"/></svg></button>
+      <div class="name" id="title"></div>
+      <button class="ib" id="pip"><svg viewBox="0 0 24 24"><path d="M19 7h-8v6h8zm4-4H1v18h22zm-2 16.01H3V4.98h18z"/></svg></button>
+    </div>
+    <div class="mid">
+      <button class="ib" id="prev"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
+      <button class="ib big" id="pp"></button>
+      <button class="ib" id="next"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6zM16 6v12h2V6z"/></svg></button>
+    </div>
+    <div class="bot">
+      <div class="seek"><span id="cur">0:00</span><input type="range" id="sk" min="0" max="1000" value="0"><span id="dur">0:00</span></div>
+      <div class="row">
+        <button class="pill" id="spd">1×</button>
+        <button class="pill" id="fit">Ajustar</button>
+        <button class="pill" id="subs">Legendas</button>
+        <button class="pill" id="lst">Lista</button>
+        <button class="pill" id="fs">⛶</button>
+      </div>
+    </div>
+  </div>
+  <div class="sheet" id="shSpd"><h4>Velocidade</h4><div class="chips" id="spdChips"></div></div>
+  <div class="sheet" id="shSub"><h4>Legendas</h4><div class="chips"><button class="chip" id="subOff">Desligadas</button><button class="chip" id="subLoad">Carregar .srt / .vtt</button></div></div>
+  <div class="sheet" id="shList"><h4>A seguir</h4><div id="plist"></div></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const v=$('v'),ui=$('ui');
+let items=[],cur=-1,hideT,store={};
+try{store=JSON.parse(localStorage.getItem('cine')||'{}')}catch(e){}
+const save=()=>{try{localStorage.setItem('cine',JSON.stringify(store))}catch(e){}};
+const fmt=s=>{if(!isFinite(s))return'0:00';s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return(h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')};
+const key=f=>f.name+'|'+f.size;
+const ICO={play:'<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',pause:'<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>'};
+
+function renderHome(){
+  const h=$('home');
+  const resume=items.map((it,i)=>({it,i})).filter(o=>store[key(o.it.file)]?.t>5);
+  let html='<div class="hero"><h2>A tua sala de cinema</h2><p>Escolhe filmes do telemóvel e vê com controlos por gestos, legendas e velocidade.</p><button class="add" onclick="$(\'file\').click()">Escolher ficheiros</button></div>';
+  if(!items.length)html+='<div class="empty">Ainda não há filmes.<br>Toca em “Adicionar filmes”.</div>';
+  else{
+    if(resume.length)html+='<h3>Continuar a ver</h3><div class="grid">'+resume.map(o=>cardHtml(o.it,o.i)).join('')+'</div>';
+    html+='<h3>Biblioteca</h3><div class="grid">'+items.map((it,i)=>cardHtml(it,i)).join('')+'</div>';
+  }
+  h.innerHTML=html;
+}
+function cardHtml(it,i){
+  const s=store[key(it.file)],p=s&&s.d?Math.min(100,s.t/s.d*100):0;
+  return `<button class="card" onclick="openAt(${i})"><img class="thumb" src="${it.thumb||''}" alt=""><div class="play-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div><div class="meta"><div class="t">${esc(it.name)}</div><div class="d">${it.dur?fmt(it.dur):'—'}</div></div>${p?`<div class="bar"><i style="width:${p}%"></i></div>`:''}</button>`;
+}
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+$('addBtn').onclick=()=>$('file').click();
+$('file').onchange=async e=>{
+  for(const f of e.target.files){
+    if(items.some(x=>key(x.file)===key(f)))continue;
+    const it={file:f,url:URL.createObjectURL(f),name:f.name.replace(/\.[^.]+$/,'').replace(/[._]+/g,' ')};
+    items.push(it);renderHome();
+    makeThumb(it).then(renderHome);
+  }
+  e.target.value='';
+};
+function makeThumb(it){
+  return new Promise(res=>{
+    const t=document.createElement('video');t.muted=true;t.preload='metadata';t.src=it.url;
+    const done=()=>res();
+    t.onloadedmetadata=()=>{it.dur=t.duration;t.currentTime=Math.min(t.duration*0.1,30)};
+    t.onseeked=()=>{try{const c=document.createElement('canvas');c.width=320;c.height=200;c.getContext('2d').drawImage(t,0,0,320,200);it.thumb=c.toDataURL('image/jpeg',.7)}catch(e){}t.removeAttribute('src');done()};
+    t.onerror=done;
+  });
+}
+
+function openAt(i){
+  cur=i;const it=items[i];
+  $('player').classList.add('on');
+  v.src=it.url;$('title').textContent=it.name;
+  v.querySelectorAll('track').forEach(t=>t.remove());
+  v.onloadedmetadata=()=>{const s=store[key(it.file)];if(s&&s.t>5&&s.t<v.duration-10)v.currentTime=s.t;it.dur=v.duration};
+  v.play().catch(()=>{});
+  showUI();buildList();
+  try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){}
+}
+function closePlayer(){
+  v.pause();v.removeAttribute('src');v.load();
+  $('player').classList.remove('on');
+  try{screen.orientation.unlock()}catch(e){}
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  renderHome();
+}
+$('back').onclick=closePlayer;
+const go=d=>{const n=cur+d;if(n>=0&&n<items.length)openAt(n)};
+$('prev').onclick=()=>go(-1);$('next').onclick=()=>go(1);
+v.onended=()=>{store[key(items[cur].file)]={t:0,d:v.duration};save();if(cur<items.length-1)go(1);else showUI(true)};
+
+const toggle=()=>v.paused?v.play():v.pause();
+$('pp').onclick=toggle;
+v.onplay=v.onpause=()=>{$('pp').innerHTML=v.paused?ICO.play:ICO.pause;if(v.paused)showUI(true);else showUI()};
+$('pp').innerHTML=ICO.play;
+v.ontimeupdate=()=>{
+  if(!v.duration)return;
+  if(!seeking)$('sk').value=v.currentTime/v.duration*1000;
+  $('cur').textContent=fmt(v.currentTime);$('dur').textContent=fmt(v.duration);
+  if(cur>=0&&Math.floor(v.currentTime)%3===0){store[key(items[cur].file)]={t:v.currentTime,d:v.duration};save()}
+};
+let seeking=false;
+$('sk').oninput=e=>{seeking=true;$('cur').textContent=fmt(e.target.value/1000*v.duration);showUI(true)};
+$('sk').onchange=e=>{v.currentTime=e.target.value/1000*v.duration;seeking=false;showUI()};
+
+function showUI(stay){
+  ui.classList.add('show');clearTimeout(hideT);
+  if(!stay&&!v.paused)hideT=setTimeout(()=>{if(!document.querySelector('.sheet.on'))ui.classList.remove('show')},3200);
+}
+let tt;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),900)}
+function ripple(id){const r=$(id);r.classList.remove('on');void r.offsetWidth;r.classList.add('on')}
+
+// gestures: tap toggles UI, double-tap sides seeks, vertical swipe right=volume, horizontal swipe=seek
+let lastTap=0,sx,sy,sv,st,mode,moved;
+const P=$('player');
+P.addEventListener('touchstart',e=>{
+  if(e.target.closest('.ui .top,.ui .mid,.ui .bot,.sheet'))return;
+  const t=e.touches[0];sx=t.clientX;sy=t.clientY;sv=v.volume;st=v.currentTime;mode=null;moved=false;
+},{passive:true});
+P.addEventListener('touchmove',e=>{
+  if(sx===undefined||e.target.closest('.ui .top,.ui .mid,.ui .bot,.sheet'))return;
+  const t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+  if(!mode&&(Math.abs(dx)>14||Math.abs(dy)>14)){mode=Math.abs(dx)>Math.abs(dy)?'seek':'vol'}
+  if(mode)moved=true;
+  if(mode==='seek'&&v.duration){const n=Math.max(0,Math.min(v.duration,st+dx/innerWidth*120));v.currentTime=n;toast((dx>0?'+':'−')+Math.abs(Math.round(n-st))+'s  ·  '+fmt(n))}
+  if(mode==='vol'){v.volume=Math.max(0,Math.min(1,sv-dy/innerHeight*1.6));toast('Volume '+Math.round(v.volume*100)+'%')}
+},{passive:true});
+P.addEventListener('touchend',e=>{
+  if(e.target.closest('.ui .top,.ui .mid,.ui .bot,.sheet')||sx===undefined)return;
+  if(moved){sx=undefined;return}
+  const now=Date.now(),x=sx;sx=undefined;
+  if(now-lastTap<300){
+    if(x<innerWidth/3){v.currentTime-=10;ripple('rl');toast('−10s')}
+    else if(x>innerWidth*2/3){v.currentTime+=10;ripple('rr');toast('+10s')}
+    else toggle();
+    lastTap=0;
+  }else{
+    lastTap=now;
+    setTimeout(()=>{if(lastTap===now){ui.classList.contains('show')&&!v.paused&&!document.querySelector('.sheet.on')?ui.classList.remove('show'):showUI();closeSheets()}},300);
+  }
+});
+P.addEventListener('click',e=>{ // mouse fallback
+  if(e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;
+  if(e.target.closest('.ui .top,.ui .mid,.ui .bot,.sheet'))return;
+  toggle();
+});
+P.addEventListener('mousemove',()=>showUI());
+document.addEventListener('keydown',e=>{
+  if(!P.classList.contains('on'))return;
+  if(e.key===' '){e.preventDefault();toggle()}
+  if(e.key==='ArrowRight')v.currentTime+=10;
+  if(e.key==='ArrowLeft')v.currentTime-=10;
+  if(e.key==='ArrowUp'){v.volume=Math.min(1,v.volume+.1);toast('Volume '+Math.round(v.volume*100)+'%')}
+  if(e.key==='ArrowDown'){v.volume=Math.max(0,v.volume-.1);toast('Volume '+Math.round(v.volume*100)+'%')}
+  if(e.key==='f')$('fs').click();
+  if(e.key==='Escape')closePlayer();
+});
+
+// speed
+const speeds=[.5,.75,1,1.25,1.5,2];
+$('spdChips').innerHTML=speeds.map(s=>`<button class="chip ${s===1?'sel':''}" data-s="${s}">${s}×</button>`).join('');
+$('spdChips').onclick=e=>{const s=e.target.dataset.s;if(!s)return;v.playbackRate=+s;$('spd').textContent=s+'×';[...$('spdChips').children].forEach(c=>c.classList.toggle('sel',c.dataset.s===s));closeSheets()};
+function closeSheets(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on'))}
+const open=id=>{closeSheets();$(id).classList.add('on');showUI(true)};
+$('spd').onclick=()=>open('shSpd');$('subs').onclick=()=>open('shSub');$('lst').onclick=()=>{buildList();open('shList')};
+
+// fit
+const fits=['contain','cover','fill'],fitN=['Ajustar','Preencher','Esticar'];let fi=0;
+$('fit').onclick=()=>{fi=(fi+1)%3;v.style.objectFit=fits[fi];$('fit').textContent=fitN[fi];toast(fitN[fi])};
+
+// fullscreen / pip
+$('fs').onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():P.requestFullscreen().catch(()=>{})}catch(e){}};
+$('pip').onclick=()=>{try{document.pictureInPictureElement?document.exitPictureInPicture():v.requestPictureInPicture().catch(()=>toast('PiP indisponível'))}catch(e){toast('PiP indisponível')}};
+
+// subtitles
+$('subLoad').onclick=()=>$('subFile').click();
+$('subOff').onclick=()=>{[...v.textTracks].forEach(t=>t.mode='disabled');closeSheets();toast('Legendas off')};
+$('subFile').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  let txt=await f.text();
+  if(!/^WEBVTT/.test(txt))txt='WEBVTT\n\n'+txt.replace(/\r/g,'').replace(/(\d+:\d+:\d+),(\d+)/g,'$1.$2');
+  v.querySelectorAll('track').forEach(t=>t.remove());
+  const tr=document.createElement('track');tr.kind='subtitles';tr.label=f.name;tr.default=true;
+  tr.src=URL.createObjectURL(new Blob([txt],{type:'text/vtt'}));
+  v.appendChild(tr);setTimeout(()=>{if(v.textTracks[0])v.textTracks[0].mode='showing'},100);
+  closeSheets();toast('Legenda carregada');e.target.value='';
+};
+
+function buildList(){
+  $('plist').innerHTML=items.map((it,i)=>`<button class="pl ${i===cur?'sel':''}" onclick="openAt(${i});closeSheets()"><img src="${it.thumb||''}" alt=""><div class="t">${esc(it.name)}</div></button>`).join('');
+}
+renderHome();
+</script>
+</body>
+</html>
